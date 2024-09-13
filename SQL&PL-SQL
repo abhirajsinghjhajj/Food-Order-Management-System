@@ -1,0 +1,480 @@
+CREATE TABLE customer (
+  customer_id INT PRIMARY KEY,
+  password VARCHAR2(50) NOT NULL,
+  phone_number VARCHAR2(20) NOT NULL,
+  address VARCHAR2(100),
+  email VARCHAR2(100) NOT NULL,
+  first_name VARCHAR2(100) NOT NULL,
+  Middle_name VARCHAR2(100),
+  Last_name VARCHAR2(100)
+);
+
+CREATE TABLE restaurant (
+  restaurant_id INT PRIMARY KEY,
+  name VARCHAR2(100),
+  address VARCHAR2(100)
+);
+
+CREATE TABLE contact_info (
+  contact_info Varchar(14) PRIMARY KEY,
+  restaurant_id INT REFERENCES restaurant(restaurant_id)
+);
+
+CREATE TABLE Manager (
+  Manager_id int PRIMARY KEY,
+  Username varchar(50),
+  Full_Name varchar(100),
+  Password varchar(50),
+  Contact int,
+  Restaurant_id int,
+  Email_Address varchar(100),
+  FOREIGN KEY (Restaurant_id) REFERENCES Restaurant (Restaurant_id)
+);
+
+CREATE TABLE menu_items (
+  Item_ID int PRIMARY KEY,
+  Name varchar(255),
+  Status varchar(50) check(Status IN ('Available', 'Out of Stock')),
+  Price decimal(10,2),
+  Restaurant_ID int,
+  FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id)
+);
+
+
+CREATE TABLE Orders(
+     order_id INT PRIMARY KEY,
+     order_status VARCHAR(50),
+     total_amount DECIMAL(10, 2),
+     processed_by int,
+     customer_id INT,
+     order_date DATE,
+     CONSTRAINT fk_order_customer FOREIGN KEY (customer_id) REFERENCES Customer(customer_id) ON DELETE CASCADE,
+     constraint fk_orders_restraunt foreign key (processed_by) references restaurant(restaurant_id) on delete set null,
+     CHECK (order_status in ('Accepted'))
+);
+
+
+CREATE TABLE order_details(
+  order_id INT,
+  item_id INT,
+  order_item_number INT,
+  amount DECIMAL(10,2),
+  quantity INT,
+  CONSTRAINT pk_order_details PRIMARY KEY (order_id, order_item_number),
+  CONSTRAINT fk_order_details_order_id FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+  CONSTRAINT fk_order_details_item_id FOREIGN KEY (item_id) REFERENCES menu_items(item_id) ON DELETE SET NULL);
+
+CREATE TABLE Payment (
+    payment_id int,
+    order_id int,
+    P_Date date,
+    Processed_by int,
+    Payed_by varchar(100),
+    Amount decimal(10, 2),
+    CONSTRAINT pk_payment PRIMARY KEY (payment_id),
+    CONSTRAINT fk_payment_order FOREIGN KEY (order_id) REFERENCES Orders(order_id) ,
+    CONSTRAINT fk_payment_manager FOREIGN KEY (Processed_by) REFERENCES Manager(Manager_id) ON DELETE SET NULL
+);
+
+INSERT INTO customer (customer_id, password, phone_number, address, email, first_name, middle_name, last_name)
+VALUES
+  (1, 'password1', '+91 9876543210', '123 Main St, Mumbai, India', 'customer1@gmail.com', 'Shubham' , 'Kumar', 'Gupta');
+
+INSERT INTO customer (customer_id, password, phone_number, address, email, first_name, middle_name, last_name)
+VALUES
+  (2, 'password2', '+91 9876543211', '456 High St, Delhi, India', 'customer2@gmail.com', 'Jane', 'B.', 'Smith');
+
+INSERT INTO customer (customer_id, password, phone_number, address, email, first_name, middle_name, last_name)
+VALUES
+  (3, 'password3', '+91 9876543212', '789 Ocean Blvd, Delhi, India', 'customer3@gmail.com', 'Bob', NULL, 'Johnson');
+
+INSERT INTO customer (customer_id, password, phone_number, address, email, first_name, middle_name, last_name)
+VALUES
+  (4, 'password4', '+91 9876543213', '987 Sakura St, Bangalore, India', 'customer4@gmail.com', 'Sakura', NULL, 'Tanaka');
+
+INSERT INTO customer (customer_id, password, phone_number, address, email, first_name, middle_name, last_name)
+VALUES
+  (5, 'password5', '+91 9876543214', '321 Rua da Praia, Kolkata, India', 'customer5@gmail.com', 'Pedro', NULL, 'Souza');
+
+
+
+INSERT INTO restaurant (restaurant_id, name, address)
+VALUES
+  (1, 'The Spice Room', '123 Main St, Mumbai, India');
+
+INSERT INTO restaurant (restaurant_id, name, address)
+VALUES
+  (2, 'The Olive Garden', '456 High St, Delhi, India');
+
+INSERT INTO restaurant (restaurant_id, name, address)
+VALUES
+  (3, 'La Petite France', '789 Ocean Blvd, Delhi, India');
+
+INSERT INTO restaurant (restaurant_id, name, address)
+VALUES
+  (4, 'Sakura Japanese Restaurant', '987 Sakura St, Bangalore, India');
+
+INSERT INTO restaurant (restaurant_id, name, address)
+VALUES
+  (5, 'Fogo de Chão', '321 Rua da Praia, Kolkata, India');
+
+
+
+INSERT INTO contact_info (contact_info, restaurant_id)
+VALUES
+  ('+91 9876543210', 1);
+
+INSERT INTO contact_info (contact_info, restaurant_id)
+VALUES
+  ('+91 9876543211', 1);
+
+INSERT INTO contact_info (contact_info, restaurant_id)
+VALUES
+  ('+91 9876543212', 2);
+
+INSERT INTO contact_info (contact_info, restaurant_id)
+VALUES
+  ('+91 9876543213', 3);
+
+INSERT INTO contact_info (contact_info, restaurant_id)
+VALUES
+  ('+91 9876543214', 3);
+
+
+
+
+INSERT INTO Manager (Manager_id, Username, Full_Name, Password, Contact, Restaurant_id, Email_Address)
+VALUES (1, 'john_doe', 'John Doe', 'password1', 1234567890, 1, 'john_doe@example.com');
+
+INSERT INTO Manager (Manager_id, Username, Full_Name, Password, Contact, Restaurant_id, Email_Address)
+VALUES (2, 'jane_doe', 'Jane Doe', 'password2', 2345678901, 2, 'jane_doe@example.com');
+
+INSERT INTO Manager (Manager_id, Username, Full_Name, Password, Contact, Restaurant_id, Email_Address)
+VALUES (3, 'bob_smith', 'Bob Smith', 'password3', 3456789012, 3, 'bob_smith@example.com');
+
+INSERT INTO Manager (Manager_id, Username, Full_Name, Password, Contact, Restaurant_id, Email_Address)
+VALUES (4, 'alice_jones', 'Alice Jones', 'password4', 4567890123, 4, 'alice_jones@example.com');
+
+INSERT INTO Manager (Manager_id, Username, Full_Name, Password, Contact, Restaurant_id, Email_Address)
+VALUES (5, 'mark_lee', 'Mark Lee', 'password5', 5678901234, 5, 'mark_lee@example.com');
+
+
+
+INSERT INTO menu_items (Item_ID, Name, Status, Price, Restaurant_ID)
+VALUES (101, 'Chicken Alfredo', 'Available', 15.99, 1);
+
+INSERT INTO menu_items (Item_ID, Name, Status, Price, Restaurant_ID)
+VALUES (102, 'Beef Burger', 'Available', 8.99, 2);
+
+INSERT INTO menu_items (Item_ID, Name, Status, Price, Restaurant_ID)
+VALUES (103, 'Veggie Pizza', 'Out of Stock', 12.99, 3);
+
+INSERT INTO menu_items (Item_ID, Name, Status, Price, Restaurant_ID)
+VALUES (104, 'Fish and Chips', 'Available', 10.99, 1);
+
+INSERT INTO menu_items (Item_ID, Name, Status, Price, Restaurant_ID)
+VALUES (105, 'Caesar Salad', 'Available', 7.99, 2);
+
+
+
+CREATE OR REPLACE TRIGGER orders_customer_upd_trg
+AFTER UPDATE OF customer_id ON orders
+FOR EACH ROW
+BEGIN
+  UPDATE customer
+  SET customer_id = :new.customer_id
+  WHERE customer_id = :old.customer_id;
+END;
+
+
+
+CREATE OR REPLACE TRIGGER trg_order_details_upd
+BEFORE INSERT OR UPDATE ON order_details
+FOR EACH ROW
+BEGIN
+    UPDATE orders
+    SET total_amount = (SELECT SUM(amount) FROM order_details WHERE order_id = :new.order_id) + :new.amount
+    WHERE order_id = :new.order_id;
+END;
+
+
+CREATE OR REPLACE TRIGGER trg_menu_items_upd
+  AFTER UPDATE OF item_id ON menu_items
+  FOR EACH ROW
+BEGIN
+  UPDATE order_details
+  SET amount = :new.price
+  WHERE item_id = :new.item_id;
+END;
+
+
+CREATE OR REPLACE TRIGGER update_payment_amount
+AFTER UPDATE OF total_amount ON Orders
+FOR EACH ROW
+BEGIN
+    UPDATE Payment SET Amount = :new.total_amount WHERE order_id = :new.order_id;
+END;
+
+
+
+
+CREATE OR REPLACE PROCEDURE INSERT_CUSTOMER(
+    CUSTOMER_ID_P IN customer.customer_id%TYPE,
+    PASSWORD_P IN customer.password%TYPE,
+    PHONE_NUMBER_P IN customer.phone_number%TYPE,
+    ADDRESS_P IN customer.address%TYPE,
+    EMAIL_P IN customer.email%TYPE,
+    FIRST_NAME_P IN customer.first_name%TYPE,
+    MIDDLE_NAME_P IN customer.middle_name%TYPE,
+    LAST_NAME_P IN customer.last_name%TYPE
+)
+AS
+BEGIN
+    INSERT INTO CUSTOMER(
+        customer_id, password, phone_number, address, email, first_name, middle_name, last_name
+    ) VALUES (
+        CUSTOMER_ID_P, PASSWORD_P, PHONE_NUMBER_P, ADDRESS_P, EMAIL_P, FIRST_NAME_P, MIDDLE_NAME_P, LAST_NAME_P
+    );
+    COMMIT;
+END;
+
+
+
+DECLARE
+    customer_id_var customer.customer_id%TYPE := 1234;
+    password_var customer.password%TYPE := 'password';
+    phone_number_var customer.phone_number%TYPE := '5555551234';
+    address_var customer.address%TYPE := '123 Main St';
+    email_var customer.email%TYPE := 'test@example.com';
+    first_name_var customer.first_name%TYPE := 'John';
+    middle_name_var customer.middle_name%TYPE := 'Q';
+    last_name_var customer.last_name%TYPE := 'Doe';
+BEGIN
+    INSERT_CUSTOMER(
+        CUSTOMER_ID_P => customer_id_var,
+        PASSWORD_P => password_var,
+        PHONE_NUMBER_P => phone_number_var,
+        ADDRESS_P => address_var,
+        EMAIL_P => email_var,
+        FIRST_NAME_P => first_name_var,
+        MIDDLE_NAME_P => middle_name_var,
+        LAST_NAME_P => last_name_var
+    );
+END;
+
+
+
+CREATE OR REPLACE PROCEDURE insert_restaurant(
+  p_restaurant_id IN INT,
+  p_name IN VARCHAR2,
+  p_address IN VARCHAR2
+) AS
+BEGIN
+  INSERT INTO restaurant (restaurant_id, name, address)
+  VALUES (p_restaurant_id, p_name, p_address);
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('Restaurant inserted successfully.');
+EXCEPTION
+  WHEN OTHERS THEN
+    ROLLBACK;
+    DBMS_OUTPUT.PUT_LINE('Error inserting restaurant: ' || SQLERRM);
+END;
+
+
+
+
+CREATE OR REPLACE PROCEDURE delete_restaurant(
+  p_restaurant_id IN INT
+) AS
+BEGIN
+  DELETE FROM restaurant
+  WHERE restaurant_id = p_restaurant_id;
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('Restaurant deleted successfully.');
+EXCEPTION
+  WHEN OTHERS THEN
+    ROLLBACK;
+    DBMS_OUTPUT.PUT_LINE('Error deleting restaurant: ' || SQLERRM);
+END;
+
+
+
+CREATE OR REPLACE PROCEDURE update_restaurant(
+  p_restaurant_id IN INT,
+  p_name IN VARCHAR2,
+  p_address IN VARCHAR2
+) AS
+BEGIN
+  UPDATE restaurant
+  SET name = p_name,
+      address = p_address
+  WHERE restaurant_id = p_restaurant_id;
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('Restaurant updated successfully.');
+EXCEPTION
+  WHEN OTHERS THEN
+    ROLLBACK;
+    DBMS_OUTPUT.PUT_LINE('Error updating restaurant: ' || SQLERRM);
+END;
+
+
+
+
+DECLARE
+  v_restaurant_id   restaurant.restaurant_id%TYPE;
+  v_name            restaurant.name%TYPE;
+  v_address         restaurant.address%TYPE;
+  CURSOR c_restaurant IS
+    SELECT restaurant_id, name, address
+    FROM restaurant;
+BEGIN
+  OPEN c_restaurant;
+  LOOP
+    FETCH c_restaurant INTO v_restaurant_id, v_name, v_address;
+    EXIT WHEN c_restaurant%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Restaurant ID: ' || v_restaurant_id);
+    DBMS_OUTPUT.PUT_LINE('Name: ' || v_name);
+    DBMS_OUTPUT.PUT_LINE('Address: ' || v_address);
+    DBMS_OUTPUT.PUT_LINE('--------------------------');
+  END LOOP;
+  CLOSE c_restaurant;
+END;
+
+
+
+CREATE OR REPLACE PROCEDURE insert_menu_item (
+  p_item_id IN menu_items.item_id%TYPE,
+  p_name IN menu_items.name%TYPE,
+  p_status IN menu_items.status%TYPE,
+  p_price IN menu_items.price%TYPE,
+  p_restaurant_id IN menu_items.restaurant_id%TYPE
+) AS
+BEGIN
+  INSERT INTO menu_items (item_id, name, status, price, restaurant_id)
+  VALUES (p_item_id, p_name, p_status, p_price, p_restaurant_id);
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('Menu item inserted successfully');
+END;
+
+
+
+CREATE OR REPLACE PROCEDURE update_menu_item (
+  p_item_id IN menu_items.item_id%TYPE,
+  p_name IN menu_items.name%TYPE,
+  p_status IN menu_items.status%TYPE,
+  p_price IN menu_items.price%TYPE,
+  p_restaurant_id IN menu_items.restaurant_id%TYPE
+) AS
+BEGIN
+  UPDATE menu_items
+  SET name = p_name,
+      status = p_status,
+      price = p_price,
+      restaurant_id = p_restaurant_id
+  WHERE item_id = p_item_id;
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('Menu item updated successfully');
+END;
+
+
+CREATE OR REPLACE PROCEDURE delete_menu_item (
+  p_item_id IN menu_items.item_id%TYPE
+) AS
+BEGIN
+  DELETE FROM menu_items WHERE item_id = p_item_id;
+  COMMIT;
+  DBMS_OUTPUT.PUT_LINE('Menu item deleted successfully');
+END;
+
+
+BEGIN
+update_menu_item(108,'Chicken Spicy Burger' ,'Available', 12.99,1);
+END;
+
+BEGIN
+delete_menu_item(108);
+END;
+
+
+
+
+
+CREATE OR REPLACE PROCEDURE place_order(
+  p_order_id IN orders.order_id%TYPE,
+  p_customer_id IN orders.customer_id%TYPE,
+  p_processed_by IN orders.processed_by%TYPE,
+  p_order_status IN orders.order_status%TYPE,
+  p_order_date IN orders.order_date%TYPE,
+  p_menu_item_id IN menu_items.item_id%TYPE,
+  p_quantity IN order_details.quantity%TYPE,
+  p_payed_by IN payment.payed_by%TYPE,
+  p_payment_processed_by IN payment.processed_by%TYPE
+)
+IS
+  v_order_item_number order_details.order_item_number%TYPE;
+  v_total_amount orders.total_amount%TYPE;
+  v_amount menu_items.price%TYPE;
+  v_payment_id payment.payment_id%TYPE;
+BEGIN
+  -- Insert into Orders table
+  INSERT INTO orders (order_id, order_status, total_amount, processed_by, customer_id, order_date)
+  VALUES (p_order_id, p_order_status, 0, p_processed_by, p_customer_id, p_order_date);
+  -- Insert into order_details table
+  SELECT NVL(MAX(order_item_number), 0) + 1 INTO v_order_item_number FROM order_details WHERE order_id = p_order_id;
+  SELECT price INTO v_amount FROM menu_items WHERE item_id = p_menu_item_id;
+  INSERT INTO order_details (order_id, item_id, order_item_number, amount, quantity)
+  VALUES (p_order_id, p_menu_item_id, v_order_item_number, v_amount*p_quantity, p_quantity);
+  -- Update total amount in Orders table
+  SELECT SUM(amount ) INTO v_total_amount FROM order_details WHERE order_id = p_order_id;
+  UPDATE orders SET total_amount = v_total_amount WHERE order_id = p_order_id;
+  -- Insert into Payment table
+  SELECT NVL(MAX(payment_id),0) + 1 INTO v_payment_id FROM payment;
+  INSERT INTO payment (payment_id, order_id, p_date, processed_by, payed_by, amount)
+  VALUES (v_payment_id, p_order_id, SYSDATE, p_payment_processed_by, p_payed_by, v_total_amount);
+END;
+
+begin
+place_order(1102,2,2,'Accepted',SYSDATE,102,2,'CASH',2);
+end;
+
+
+
+
+
+
+    CREATE OR REPLACE PROCEDURE insert_order_detail(
+        p_order_id IN INT,
+        p_item_id IN INT,
+        p_quantity IN INT
+    )
+    IS
+        v_order_item_num INT;
+        v_amount NUMBER(5,2);
+    BEGIN
+       SELECT MAX(order_item_number) + 1
+       INTO v_order_item_num
+       FROM order_details
+       WHERE order_id = p_order_id;
+       IF v_order_item_num IS NULL THEN
+           v_order_item_num := 1;
+       END IF;
+       SELECT PRICE INTO v_amount FROM menu_items WHERE item_id = p_item_id;
+       INSERT INTO order_details (
+           order_id,
+           order_item_number,
+           item_id,
+           quantity,
+           amount
+       ) VALUES (
+           p_order_id,
+           v_order_item_num,
+           p_item_id,
+           p_quantity,
+           v_amount*p_quantity
+       );
+  END;
+
+
+Begin
+insert_order_detail(1102,102,2);
+End;

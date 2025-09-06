@@ -1,0 +1,267 @@
+-- CREATE DATABASE DB;
+-- USE DB;
+CREATE TABLE customer (
+  customer_id INT PRIMARY KEY AUTO_INCREMENT,
+  password VARCHAR(255) NOT NULL,
+  phone_number VARCHAR(20) NOT NULL,
+  address VARCHAR(200),
+  email VARCHAR(150) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  middle_name VARCHAR(100),
+  last_name VARCHAR(100),
+  UNIQUE KEY uq_customer_email (email)
+) ENGINE=InnoDB;
+
+CREATE TABLE restaurant (
+  restaurant_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(150) NOT NULL,
+  address VARCHAR(200) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE contact_info (
+  contact_info VARCHAR(20) PRIMARY KEY,
+  restaurant_id INT,
+  FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE manager (
+  manager_id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(50) NOT NULL,
+  full_name VARCHAR(120) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  contact VARCHAR(20),
+  restaurant_id INT,
+  email_address VARCHAR(150),
+  FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id)
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  UNIQUE KEY uq_manager_username (username),
+  UNIQUE KEY uq_manager_email (email_address)
+) ENGINE=InnoDB;
+
+CREATE TABLE menu_items (
+  item_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  status ENUM('Available','Out of Stock') NOT NULL DEFAULT 'Available',
+  price DECIMAL(10,2) NOT NULL,
+  restaurant_id INT,
+  FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX ix_menu_restaurant (restaurant_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE orders (
+  order_id INT PRIMARY KEY AUTO_INCREMENT,
+  order_status ENUM('Accepted') NOT NULL DEFAULT 'Accepted',
+  total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  processed_by INT NULL,
+  customer_id INT NOT NULL,
+  order_date DATETIME NOT NULL,
+  FOREIGN KEY (customer_id) REFERENCES customer(customer_id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (processed_by) REFERENCES restaurant(restaurant_id)
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX ix_orders_customer (customer_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE order_details (
+  order_id INT NOT NULL,
+  item_id INT NULL,
+  order_item_number INT NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  quantity INT NOT NULL CHECK (quantity > 0),
+  PRIMARY KEY (order_id, order_item_number),
+  FOREIGN KEY (order_id) REFERENCES orders(order_id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (item_id) REFERENCES menu_items(item_id)
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX ix_od_item (item_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE payment (
+  payment_id INT PRIMARY KEY AUTO_INCREMENT,
+  order_id INT NOT NULL,
+  p_date DATETIME NOT NULL,
+  processed_by INT NULL,
+  payed_by VARCHAR(100) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  FOREIGN KEY (order_id) REFERENCES orders(order_id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  FOREIGN KEY (processed_by) REFERENCES manager(manager_id)
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX ix_payment_order (order_id)
+) ENGINE=InnoDB;
+
+DELIMITER //
+
+CREATE PROCEDURE recalc_order_total(IN p_order_id INT)
+BEGIN
+  DECLARE v_total DECIMAL(10,2);
+
+  SELECT COALESCE(SUM(amount),0.00)
+    INTO v_total
+    FROM order_details
+   WHERE order_id = p_order_id;
+
+  UPDATE orders
+     SET total_amount = v_total
+   WHERE order_id = p_order_id;
+
+  UPDATE payment
+     SET amount = v_total
+   WHERE order_id = p_order_id;
+END//
+
+/* Customers */
+CREATE PROCEDURE insert_customer(
+  IN p_customer_id INT,
+  IN p_password VARCHAR(255),
+  IN p_phone VARCHAR(20),
+  IN p_address VARCHAR(200),
+  IN p_email VARCHAR(150),
+  IN p_first_name VARCHAR(100),
+  IN p_middle_name VARCHAR(100),
+  IN p_last_name VARCHAR(100)
+)
+BEGIN
+  INSERT INTO customer (customer_id,password,phone_number,address,email,first_name,middle_name,last_name)
+  VALUES (p_customer_id,p_password,p_phone,p_address,p_email,p_first_name,p_middle_name,p_last_name);
+END//
+
+/* Restaurants */
+CREATE PROCEDURE insert_restaurant(
+  IN p_restaurant_id INT,
+  IN p_name VARCHAR(150),
+  IN p_address VARCHAR(200)
+)
+BEGIN
+  INSERT INTO restaurant (restaurant_id,name,address)
+  VALUES (p_restaurant_id,p_name,p_address);
+END//
+
+CREATE PROCEDURE update_restaurant(
+  IN p_restaurant_id INT,
+  IN p_name VARCHAR(150),
+  IN p_address VARCHAR(200)
+)
+BEGIN
+  UPDATE restaurant
+     SET name = p_name, address = p_address
+   WHERE restaurant_id = p_restaurant_id;
+END//
+
+CREATE PROCEDURE delete_restaurant(
+  IN p_restaurant_id INT
+)
+BEGIN
+  DELETE FROM restaurant WHERE restaurant_id = p_restaurant_id;
+END//
+
+/* Menu items */
+CREATE PROCEDURE insert_menu_item(
+  IN p_item_id INT,
+  IN p_name VARCHAR(255),
+  IN p_status VARCHAR(50),
+  IN p_price DECIMAL(10,2),
+  IN p_restaurant_id INT
+)
+BEGIN
+  INSERT INTO menu_items (item_id,name,status,price,restaurant_id)
+  VALUES (p_item_id,p_name,p_status,p_price,p_restaurant_id);
+END//
+
+CREATE PROCEDURE update_menu_item(
+  IN p_item_id INT,
+  IN p_name VARCHAR(255),
+  IN p_status VARCHAR(50),
+  IN p_price DECIMAL(10,2),
+  IN p_restaurant_id INT
+)
+BEGIN
+  UPDATE menu_items
+     SET name = p_name,
+         status = p_status,
+         price = p_price,
+         restaurant_id = p_restaurant_id
+   WHERE item_id = p_item_id;
+END//
+
+CREATE PROCEDURE delete_menu_item(
+  IN p_item_id INT
+)
+BEGIN
+  DELETE FROM menu_items WHERE item_id = p_item_id;
+END//
+
+/* Place a new order with one line item + create payment (transactional) */
+CREATE PROCEDURE place_order(
+  IN  p_customer_id INT,
+  IN  p_processed_by INT,
+  IN  p_order_date DATETIME,
+  IN  p_menu_item_id INT,
+  IN  p_quantity INT,
+  IN  p_payed_by VARCHAR(100),
+  IN  p_payment_processed_by INT,
+  OUT o_order_id INT,
+  OUT o_payment_id INT
+)
+BEGIN
+  DECLARE v_price DECIMAL(10,2);
+  DECLARE v_item_no INT;
+
+  START TRANSACTION;
+
+  INSERT INTO orders (order_status,total_amount,processed_by,customer_id,order_date)
+  VALUES ('Accepted',0.00,p_processed_by,p_customer_id,p_order_date);
+  SET o_order_id = LAST_INSERT_ID();
+
+  SELECT price INTO v_price
+    FROM menu_items
+   WHERE item_id = p_menu_item_id
+   FOR UPDATE;
+
+  SELECT COALESCE(MAX(order_item_number),0) + 1
+    INTO v_item_no
+    FROM order_details
+   WHERE order_id = o_order_id;
+
+  INSERT INTO order_details (order_id,item_id,order_item_number,amount,quantity)
+  VALUES (o_order_id,p_menu_item_id,v_item_no,v_price * p_quantity,p_quantity);
+
+  CALL recalc_order_total(o_order_id);
+
+  INSERT INTO payment (order_id,p_date,processed_by,payed_by,amount)
+  SELECT o_order_id, NOW(), p_payment_processed_by, p_payed_by, total_amount
+    FROM orders WHERE order_id = o_order_id;
+
+  SET o_payment_id = LAST_INSERT_ID();
+
+  COMMIT;
+END//
+
+CREATE PROCEDURE insert_order_detail(
+  IN p_order_id INT,
+  IN p_item_id INT,
+  IN p_quantity INT
+)
+BEGIN
+  DECLARE v_item_no INT;
+  DECLARE v_price DECIMAL(10,2);
+
+  SELECT COALESCE(MAX(order_item_number),0) + 1
+    INTO v_item_no
+    FROM order_details
+   WHERE order_id = p_order_id;
+
+  SELECT price INTO v_price
+    FROM menu_items
+   WHERE item_id = p_item_id;
+
+  INSERT INTO order_details (order_id,order_item_number,item_id,quantity,amount)
+  VALUES (p_order_id,v_item_no,p_item_id,p_quantity,v_price * p_quantity);
+
+  CALL recalc_order_total(p_order_id);
+END//
+
+DELIMITER ;
+
